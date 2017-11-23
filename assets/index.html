@@ -1,0 +1,53 @@
+<!-- /views/upload.html -->
+<html>
+
+<head>
+    <title>DropzoneJS Uploader</title>
+    <link href="/dz.css" type="text/css" rel="stylesheet" />
+    <script src="/dz.js"></script>
+  <style>
+   .uploadbox {
+     position: absolute;
+     left: 50%;
+     top: 50%;
+     width: 500px;
+     margin-left: -250px;
+  }
+   form#islandDrop {
+  display: -webkit-box;  /* OLD - iOS 6-, Safari 3.1-6, BB7 */
+  display: -ms-flexbox;  /* TWEENER - IE 10 */
+  display: -webkit-flex; /* NEW - Safari 6.1+. iOS 7.1+, BB10 */
+  display: flex;         /* NEW, Spec - Firefox, Chrome, Opera */
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  }
+ </style>
+ <script>
+Dropzone.options.islandDrop = {
+  url: "/upload",
+  thumbnailWidth: 120,
+  thumbnailHeight: 120,
+  autoProcessQueue: true,
+  acceptedFiles: ".jpg,.jpeg,.gif,.png",
+  paramName: "file", // The name that will be used to transfer the file
+  success: function(file, response) {
+    alert(response);
+  },
+  maxFilesize: 20, // MB
+}
+ </script>
+</head>
+
+<body>
+ <div class="uploadbox">
+  <form action="/upload" id="islandDrop" method="POST" class="dropzone" id="my-dropzone">
+   <div class="fallback">
+    <input name="file" type="file" multiple />
+    <input type="submit" value="Upload" />
+   </div>
+  </form>
+ </div>
+</body>
+
+</html>
