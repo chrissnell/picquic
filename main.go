@@ -15,7 +15,7 @@ import (
 	"github.com/kataras/iris/sessions/sessiondb/boltdb"
 )
 
-const maxUploadSize int64 = 10 * 1024 * 1024
+const maxUploadSize int64 = 20 * 1024 * 1024
 
 // Uploads holds the list of files uploaded during this session
 type Uploads struct {

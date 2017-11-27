@@ -773,7 +773,11 @@ var Dropzone = function (_Emitter) {
             }
 
             if (this.options.addRemoveLinks) {
-              file._removeLink = Dropzone.createElement("<a class=\"dz-remove\" href=\"javascript:undefined;\" data-dz-remove>" + this.options.dictRemoveFile + "</a>");
+              if (this.options.customRemoveClass) {
+                file._removeLink = Dropzone.createElement("<a class=\"dz-remove " + this.options.customRemoveClass + "\" href=\"javascript:undefined;\" data-dz-remove></a>");
+              } else {
+                file._removeLink = Dropzone.createElement("<a class=\"dz-remove\" href=\"javascript:undefined;\" data-dz-remove>" + this.options.dictRemoveFile + "</a>");
+              }
               file.previewElement.appendChild(file._removeLink);
             }
 
@@ -890,6 +894,9 @@ var Dropzone = function (_Emitter) {
           if (file.previewElement) {
             file.previewElement.classList.add("dz-processing");
             if (file._removeLink) {
+              if (this.options.customRemoveClass) {
+                return file._removeLink.textContent = "";
+              }
               return file._removeLink.textContent = this.options.dictCancelUpload;
             }
           }
@@ -954,7 +961,9 @@ var Dropzone = function (_Emitter) {
         // When the upload is finished, either with success or an error.
         // Receives `file`
         complete: function complete(file) {
-          if (file._removeLink) {
+          if (this.options.customRemoveClass) {
+            file._removeLink.textContent = "";
+          } else if (file._removeLink) {
             file._removeLink.textContent = this.options.dictRemoveFile;
           }
           if (file.previewElement) {

@@ -4,8 +4,12 @@
 <head>
     <title>DropzoneJS Uploader</title>
     <link href="/dz.css" type="text/css" rel="stylesheet" />
+    <link href="/fonts.css" type="text/css" rel="stylesheet" />
     <script src="/dz.js"></script>
   <style>
+   .clear-icon-cancel-circle {
+     visibility: hidden;
+   }
    .uploadbox {
      position: absolute;
      left: 50%;
@@ -29,17 +33,23 @@ Dropzone.options.islandDrop = {
   thumbnailWidth: 120,
   thumbnailHeight: 120,
   autoProcessQueue: true,
+  addRemoveLinks: true,
+  removeButton: true,
+  customRemoveClass: "icon-cancel-circle",
+  dictDefaultMessage: "Drop files here to upload<br>(or click to select some)",
   acceptedFiles: ".jpg,.jpeg,.gif,.png",
   paramName: "file", // The name that will be used to transfer the file
   success: function(file, response) {
     alert(response);
   },
-  maxFilesize: 20, // MB
+  maxFilesize: 25, // MB
 }
+
  </script>
 </head>
 
 <body>
+ <div class="icon-cancel-circle clear-icon-cancel-circle"></div>
  <div class="uploadbox">
   <form action="/upload" id="islandDrop" method="POST" class="dropzone" id="my-dropzone">
    <div class="fallback">
