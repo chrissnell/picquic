@@ -9,29 +9,42 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/kataras/iris"
 	"github.com/twinj/uuid"
 )
 
-func deleteImage(ctx *Context) {
-	uploads := getUploadsCookie(ctx)
+// Uploads holds a slice of Files uploaded during this session
+type Uploads struct {
+	Files []File
+}
+
+// File refers to one uploaded file
+type File struct {
+	Name         string
+	OriginalName string
+}
+
+func deleteImage(w http.ResponseWriter, r *http.Request) {
+
+	uploads := getUploadsFromSession(w, r)
 
 	for _, file := range uploads.Files {
 		log.Println("file:", file.Name)
 	}
 
-	log.Println(uploads)
+	df := r.FormValue("df")
+
+	log.Printf("df ---> %v", df)
 }
 
-func uploadImage(ctx *Context) {
+func uploadImage(w http.ResponseWriter, r *http.Request) {
 
 	var uploads *Uploads
-	uploads = getUploadsCookie(ctx)
+	uploads = getUploadsFromSession(w, r)
 
-	file, info, err := ctx.FormFile("file")
+	file, info, err := r.FormFile("file")
 	if err != nil {
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.Application().Logger().Warnf("Error while uploading: %v", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Println("Error retrieving file from upload request:", err)
 		return
 	}
 
@@ -44,14 +57,14 @@ func uploadImage(ctx *Context) {
 	n, err := io.ReadFull(file, imgHeader)
 	if err != nil {
 		log.Println(err)
-		ctx.StatusCode(500)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	// If we can't even read 8 bytes from the file, it's definitely not a valid image
 	// (8 bytes being the size of the PNG signature...)
 	if n < 8 {
-		ctx.Values().Set("message", "Invalid image detected.")
-		ctx.StatusCode(500)
+		log.Println("Error: invalid image format detected")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -85,11 +98,13 @@ func uploadImage(ctx *Context) {
 	}
 
 	uploads.Files = append(uploads.Files, thisFile)
-	var b bytes.Buffer
-	enc := gob.NewEncoder(&b)
-	enc.Encode(uploads)
 
-	ctx.Session().Set("uploads", b.String())
+	err = saveUploadsToSession(w, r, uploads)
+	if err != nil {
+		log.Println("Could not save uploaded file to session:", err)
+
+		// DELETE UPLOADED FILE AND NOTIFY CLIENT
+	}
 
 	log.Printf("Uploads: %+v", uploads)
 
@@ -99,33 +114,50 @@ func uploadImage(ctx *Context) {
 		return
 	}
 
-	if err != nil {
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.Application().Logger().Warnf("Error while preparing the new file: %v", err.Error())
-		return
-	}
 	defer f.Close()
 
 	written, _ := io.Copy(f, file)
 
 	result := fmt.Sprintf("Wrote %v bytes to %v", written, uuidFilename)
 
-	ctx.Text(result)
-
+	w.Write([]byte(result))
 }
 
-func getUploadsCookie(ctx *Context) *Uploads {
+func getUploadsFromSession(w http.ResponseWriter, r *http.Request) *Uploads {
 	var uploads Uploads
+	var uploadsEncoded string
 
 	gob.Register(&Uploads{})
 
-	upsEncoded := ctx.Session().Get("uploads")
+	sess := getSession(w, r)
 
-	if upsEncoded != nil {
-		buf := bytes.NewBufferString(upsEncoded.(string))
+	if sess.Values["uploads"] == nil {
+		return &uploads
+	}
+
+	uploadsEncoded = sess.Values["uploads"].(string)
+
+	if uploadsEncoded != "" {
+		buf := bytes.NewBufferString(uploadsEncoded)
 		dec := gob.NewDecoder(buf)
 		dec.Decode(&uploads)
 	}
 
 	return &uploads
+}
+
+func saveUploadsToSession(w http.ResponseWriter, r *http.Request, u *Uploads) error {
+	var b bytes.Buffer
+	enc := gob.NewEncoder(&b)
+	enc.Encode(u)
+
+	sess := getSession(w, r)
+	sess.Values["uploads"] = b.String()
+	err := sess.Save(r, w)
+	if err != nil {
+		log.Println("Error saving session:", err)
+		return err
+	}
+
+	return nil
 }
