@@ -1,12 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"encoding/gob"
-	"fmt"
-	"io"
-	"log"
-	"os"
 	"sync"
 	"time"
 
@@ -17,9 +11,15 @@ import (
 
 const maxUploadSize int64 = 20 * 1024 * 1024
 
-// Uploads holds the list of files uploaded during this session
+// Uploads holds a slice of Files uploaded during this session
 type Uploads struct {
-	Files []string
+	Files []File
+}
+
+// File refers to one uploaded file
+type File struct {
+	Name         string
+	OriginalName string
 }
 
 // Picquic is our application structure with the fields and methods
@@ -84,62 +84,6 @@ func Handler(h func(*Context)) iris.Handler {
 	}
 }
 
-func limitedUpload(ctx *Context) {
-
-	var uploads Uploads
-
-	gob.Register(Uploads{})
-
-	upsEncoded := ctx.Session().Get("uploads")
-
-	if upsEncoded != nil {
-		buf := bytes.NewBufferString(upsEncoded.(string))
-		dec := gob.NewDecoder(buf)
-		dec.Decode(&uploads)
-	}
-
-	file, info, err := ctx.FormFile("file")
-	if err != nil {
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.Application().Logger().Warnf("Error while uploading: %v", err.Error())
-		return
-	}
-
-	defer file.Close()
-	fname := info.Filename
-
-	log.Println("fname:", fname)
-
-	uploads.Files = append(uploads.Files, fname)
-	var b bytes.Buffer
-	enc := gob.NewEncoder(&b)
-	enc.Encode(uploads)
-
-	ctx.Session().Set("uploads", b.String())
-
-	log.Printf("Uploads: %+v", uploads)
-
-	f, err := os.OpenFile("./scratch/"+fname, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	if err != nil {
-		ctx.StatusCode(iris.StatusInternalServerError)
-		ctx.Application().Logger().Warnf("Error while preparing the new file: %v", err.Error())
-		return
-	}
-	defer f.Close()
-
-	written, _ := io.Copy(f, file)
-
-	result := fmt.Sprintf("Wrote %v bytes to %v", written, fname)
-
-	ctx.Text(result)
-
-}
-
 func main() {
 
 	db, _ := boltdb.New("./db/sessions.db", 0666, "users")
@@ -155,7 +99,9 @@ func main() {
 
 	app.StaticWeb("/", "./assets")
 
-	app.Post("/upload", iris.LimitRequestBodySize(maxUploadSize), Handler(limitedUpload))
+	app.Post("/upload", iris.LimitRequestBodySize(maxUploadSize), Handler(uploadImage))
+
+	app.Post("/delete", Handler(deleteImage))
 
 	// Start the server at http://localhost:9000
 	app.Run(iris.Addr(":9000"))
