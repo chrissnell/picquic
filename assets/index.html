@@ -58,8 +58,12 @@ Dropzone.options.islandDrop = {
     var url = "/delete";
     var params = "df=" + encodeURIComponent(file.name);
     xmlhttp.open("POST", url, true);
+    xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+    // xmlhttp.setRequestHeader("Content-length", params.length);
+    // xmlhttp.setRequestHeader("Connection", "close");
+
     xmlhttp.send(params);
-    alert(file.name);
+    //alert(file.name);
   },
   maxFilesize: 25, // MB
 }

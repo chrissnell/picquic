@@ -31,9 +31,9 @@ func deleteImage(w http.ResponseWriter, r *http.Request) {
 		log.Println("file:", file.Name)
 	}
 
-	df := r.FormValue("df")
+	df := r.PostFormValue("df")
 
-	log.Printf("df ---> %v", df)
+	log.Println("Delete file --->", df)
 }
 
 func uploadImage(w http.ResponseWriter, r *http.Request) {
