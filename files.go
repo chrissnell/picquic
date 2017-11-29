@@ -70,7 +70,6 @@ func uploadImage(w http.ResponseWriter, r *http.Request) {
 
 	// Detect the image format using the first 512 bytes of the image
 	contentType := http.DetectContentType(imgHeader)
-	log.Println("Detected content type:", contentType)
 
 	var fileExtension string
 	switch contentType {
@@ -125,25 +124,23 @@ func uploadImage(w http.ResponseWriter, r *http.Request) {
 
 func getUploadsFromSession(w http.ResponseWriter, r *http.Request) *Uploads {
 	var uploads Uploads
+	var ok bool
 	var uploadsEncoded string
 
 	gob.Register(&Uploads{})
 
 	sess := getSession(w, r)
-
-	if sess.Values["uploads"] == nil {
+	if sess.IsNew {
 		return &uploads
 	}
 
-	uploadsEncoded = sess.Values["uploads"].(string)
-
-	if uploadsEncoded != "" {
+	if uploadsEncoded, ok = sess.Values["uploads"].(string); ok {
 		buf := bytes.NewBufferString(uploadsEncoded)
 		dec := gob.NewDecoder(buf)
 		dec.Decode(&uploads)
 	}
-
 	return &uploads
+
 }
 
 func saveUploadsToSession(w http.ResponseWriter, r *http.Request, u *Uploads) error {
@@ -153,11 +150,8 @@ func saveUploadsToSession(w http.ResponseWriter, r *http.Request, u *Uploads) er
 
 	sess := getSession(w, r)
 	sess.Values["uploads"] = b.String()
-	err := sess.Save(r, w)
-	if err != nil {
-		log.Println("Error saving session:", err)
-		return err
-	}
 
-	return nil
+	err := saveSession(w, r, sess)
+
+	return err
 }

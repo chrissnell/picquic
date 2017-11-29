@@ -3,9 +3,9 @@
 
 <head>
     <title>picquic</title>
-    <link href="/dz.css" type="text/css" rel="stylesheet" />
-    <link href="/fonts.css" type="text/css" rel="stylesheet" />
-    <script src="/dz.js"></script>
+    <link href="/css/dz.css" type="text/css" rel="stylesheet" />
+    <link href="/css/fonts.css" type="text/css" rel="stylesheet" />
+    <script src="/js/dz.js"></script>
   <style>
    .clear-icon-cancel-circle {
      visibility: hidden;
@@ -33,6 +33,7 @@ Dropzone.options.islandDrop = {
   thumbnailWidth: 120,
   thumbnailHeight: 120,
   autoProcessQueue: true,
+  parallelUploads: 1,
   addRemoveLinks: true,
   removeButton: true,
   customRemoveClass: "icon-cancel-circle",
