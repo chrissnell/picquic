@@ -41,6 +41,8 @@ func uploadImage(w http.ResponseWriter, r *http.Request) {
 	var uploads *Uploads
 	uploads = getUploadsFromSession(w, r)
 
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+
 	file, info, err := r.FormFile("file")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -20,7 +20,7 @@ func indexPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Clear out any old sessions
+	// Page has been reloaded; clear out any old sessions
 	log.Println("Clearing out old sessions...")
 	sess := getSession(w, r)
 	sess.Options.MaxAge = -1
