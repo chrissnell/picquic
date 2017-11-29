@@ -8,9 +8,13 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
+	"regexp"
 
 	"github.com/twinj/uuid"
 )
+
+const scratchDirectory string = "./scratch"
 
 // Uploads holds a slice of Files uploaded during this session
 type Uploads struct {
@@ -25,15 +29,26 @@ type File struct {
 
 func deleteImage(w http.ResponseWriter, r *http.Request) {
 
-	uploads := getUploadsFromSession(w, r)
-
-	for _, file := range uploads.Files {
-		log.Println("file:", file.Name)
-	}
-
 	df := r.PostFormValue("df")
 
-	log.Println("Delete file --->", df)
+	uploads := getUploadsFromSession(w, r)
+
+	for i, file := range uploads.Files {
+		if isSafeName(file.OriginalName) {
+			if file.OriginalName == df {
+				log.Println("Delete file --->", file.Name)
+				uploads.Files = append(uploads.Files[:i], uploads.Files[i+1:]...)
+				os.Remove(scratchDirectory + "/" + file.Name)
+				err := saveUploadsToSession(w, r, uploads)
+				if err != nil {
+					log.Println("Could not save uploaded file to session:", err)
+				}
+				log.Printf("Uploads: %+v\n", uploads)
+			}
+		} else {
+			log.Println("Dangerous file name in session detected:", file.OriginalName)
+		}
+	}
 }
 
 func uploadImage(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +124,7 @@ func uploadImage(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Uploads: %+v", uploads)
 
-	f, err := os.OpenFile("./scratch/"+uuidFilename, os.O_WRONLY|os.O_CREATE, 0666)
+	f, err := os.OpenFile(scratchDirectory+"/"+uuidFilename, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -156,4 +171,25 @@ func saveUploadsToSession(w http.ResponseWriter, r *http.Request, u *Uploads) er
 	err := saveSession(w, r, sess)
 
 	return err
+}
+
+func isSafeName(name string) bool {
+
+	astMatch, _ := regexp.MatchString(".*\\*.*", name)
+	if astMatch {
+		return false
+	}
+
+	dir, base := path.Split(name)
+	if dir != "" {
+		return false
+	}
+	if base == "" {
+		return false
+	}
+	switch base[0] {
+	case '.', '-':
+		return false
+	}
+	return true
 }
